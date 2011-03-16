@@ -113,8 +113,9 @@ where table_schema = 'public'" );
 	 *
 	 * @param string $table table to create
 	 */
-	public function createTable( $table ) {
-		$idfield = $this->getIDfield($table);
+	public function createTable( $table, $bean ) {
+		$idfield = $bean->getMeta('sys.idfield');
+//		$idfield = $this->getIDfield($table);
 		$table = $this->safeTable($table);
 		$sql = " CREATE TABLE $table ($idfield SERIAL PRIMARY KEY); ";
 		$this->adapter->exec( $sql );

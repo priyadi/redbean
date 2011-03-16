@@ -82,6 +82,15 @@ class RedBean_Setup {
 	 */
 	public static function kickstart( $dsn, $username=NULL, $password=NULL, $frozen=false ) {
 
+		// Check to see if we are going to use MySQL Custom ID field writer.
+		// If we are then we need to remove the ",mysqlcid" since it is not 
+		// valid DSN syntax and will break the functions that use the DSN.
+		$mysqlcid = false;
+		if( strpos($dsn, ',mysqlcid') !== false ) {
+			$mysqlcid = true;
+			$dsn = str_replace(',mysqlcid', '', $dsn);
+		}
+
 		if ($dsn instanceof PDO) {
 			$pdo = new RedBean_Driver_PDO($dsn);
 			$dsn = $pdo->getDatabaseType() ;
@@ -100,7 +109,12 @@ class RedBean_Setup {
 			$writer = new RedBean_QueryWriter_SQLiteT( $adapter, $frozen );
 		}
 		else {
-			$writer = new RedBean_QueryWriter_MySQL( $adapter, $frozen );
+			if( $mysqlcid ) {
+				$writer = new RedBean_QueryWriter_MySQLCID( $adapter, $frozen );
+			}
+			else {
+				$writer = new RedBean_QueryWriter_MySQL( $adapter, $frozen );
+			}
 		}
 
 		$redbean = new RedBean_OODB( $writer );

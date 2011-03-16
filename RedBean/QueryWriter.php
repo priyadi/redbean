@@ -51,7 +51,7 @@ interface RedBean_QueryWriter {
 	 * Creates the table with the specified name.
 	 * @param string $table
 	 */
-	public function createTable( $table );
+	public function createTable( $table, $bean );
 
 	/**
 	 * Returns an array containing all the columns of the specified table.
@@ -97,16 +97,16 @@ interface RedBean_QueryWriter {
 	 * @param array $updatevalues
 	 * @param integer $id
 	 */
-	public function updateRecord( $table, $updatevalues, $id);
-
+	public function updateRecord( $table, $updatevalues, $bean);
+	
 	/**
 	 * Inserts a record
 	 * @param string $table
 	 * @param array $insertcolumns
 	 * @param array $insertvalues
 	 */
-	public function insertRecord( $table, $insertcolumns, $insertvalues );
-
+	public function insertRecord( $table, $insertcolumns, $insertvalues, $bean );
+	
 	/**
 	 * Selects a record
 	 * @param string $type

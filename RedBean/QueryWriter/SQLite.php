@@ -50,12 +50,10 @@ class RedBean_QueryWriter_SQLite extends RedBean_QueryWriter_AQueryWriter implem
 	 * 
 	 * @param string $table table
 	 */
-	public function createTable( $table ) {
+	public function createTable( $table, $bean ) {
 		$idfield = $this->getIDfield($table, true);
 		$table = $this->safeTable($table);
-		$sql = "
-                     CREATE TABLE $table ( $idfield INTEGER PRIMARY KEY AUTOINCREMENT )
-				  ";
+		$sql = "CREATE TABLE $table ( ".$bean->getMeta('sys.idfield')." INTEGER PRIMARY KEY AUTOINCREMENT )";
 		$this->adapter->exec( $sql );
 	}
 
