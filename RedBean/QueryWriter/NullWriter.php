@@ -375,7 +375,7 @@ class RedBean_QueryWriter_NullWriter extends RedBean_QueryWriter_AQueryWriter im
 	 *
 	 * @return mixed
 	 */
-	public function createTable( $table ) {
+	public function createTable( $table, $bean ) {
 		$this->createTableArgument = $table;
 	}
 
@@ -438,7 +438,9 @@ class RedBean_QueryWriter_NullWriter extends RedBean_QueryWriter_AQueryWriter im
 	 *
 	 * @return mixed
 	 */
-	public function updateRecord( $table, $updatevalues, $id) {
+	public function updateRecord( $table, $updatevalues, $bean) {
+		$idfield = $bean->getMeta('sys.idfield');
+		$id = $bean->$idfield;
 		$this->updateRecordArguments = array($table, $updatevalues, $id);
 		return $this->returnUpdateRecord;
 	}
@@ -448,7 +450,7 @@ class RedBean_QueryWriter_NullWriter extends RedBean_QueryWriter_AQueryWriter im
 	 *
 	 * @return mixed
 	 */
-	public function insertRecord( $table, $insertcolumns, $insertvalues ) {
+	public function insertRecord( $table, $insertcolumns, $insertvalues, $bean ) {
 		$this->insertRecordArguments = array( $table, $insertcolumns, $insertvalues );
 		return $this->returnInsertRecord;
 	}

@@ -85,9 +85,13 @@ class RedBean_OODB extends RedBean_Observable implements RedBean_ObjectDatabase 
 		$this->signal( "before_dispense", $type );
 		$bean = new RedBean_OODBBean();
 		$bean->setMeta("type", $type );
-		$idfield = $this->writer->getIDField($bean->getMeta("type"));
+		// Set default values for the ID field.
+		$idfield = 'id';
+		$iddatatype = 'INT( 11 ) UNSIGNED NOT NULL AUTO_INCREMENT';
 		$bean->setMeta("sys.idfield",$idfield);
+		$bean->setMeta('sys.iddatatype', $iddatatype);
 		$bean->$idfield = 0;
+		
 		if (!$this->isFrozen) $this->check( $bean );
 		$bean->setMeta("tainted",false);
 		$this->signal( "dispense", $bean );
@@ -162,10 +166,11 @@ class RedBean_OODB extends RedBean_Observable implements RedBean_ObjectDatabase 
 		if (!$this->isFrozen) $this->check($bean);
 		//what table does it want
 		$table = $bean->getMeta("type");
-		$idfield = $this->writer->getIDField($table);
+		$idfield = $bean->getMeta("sys.idfield");
+//		$idfield = $this->writer->getIDField($table);
 		//Does table exist? If not, create
 		if (!$this->isFrozen && !$this->tableExists($table)) {
-			$this->writer->createTable( $table );
+			$this->writer->createTable( $table, $bean, $idfield );
 		}
 		if (!$this->isFrozen) {
 			$columns = $this->writer->getColumns($table) ;
@@ -175,7 +180,7 @@ class RedBean_OODB extends RedBean_Observable implements RedBean_ObjectDatabase 
 		$insertcolumns = array();
 		$updatevalues = array();
 		foreach( $bean as $p=>$v ) {
-			if ($p!=$idfield) {
+//			if ($p!=$idfield) {
 				if (!$this->isFrozen) {
 					//Does the user want to specify the type?
 					if ($bean->getMeta("cast.$p",-1)!==-1) {
@@ -208,28 +213,32 @@ class RedBean_OODB extends RedBean_Observable implements RedBean_ObjectDatabase 
 				//Okay, now we are sure that the property value will fit
 				$insertvalues[] = $v;
 				$insertcolumns[] = $p;
-				$updatevalues[] = array( "property"=>$p, "value"=>$v );
-			}
+				if( $p != $idfield ) {
+					$updatevalues[] = array( "property"=>$p, "value"=>$v );
+				}
+//			}
 		}
 		if (!$this->isFrozen && ($uniques = $bean->getMeta("buildcommand.unique"))) {
 			foreach($uniques as $unique) {
 				$this->writer->addUniqueIndex( $table, $unique );
 			}
 		}
-		if ($bean->$idfield) {
+		$existing_bean = R::load($table, $bean->$idfield, $idfield);
+		$ebt = gettype($existing_bean->$idfield);
+		if( ($ebt == 'string' && $existing_bean->$idfield != '') || ($ebt == 'int' && $existing_bean->$idfield != 0) ) {
 			if (count($updatevalues)>0) {
-				$this->writer->updateRecord( $table, $updatevalues, $bean->$idfield );
+				$this->writer->updateRecord( $table, $updatevalues, $bean );
 			}
 			$bean->setMeta("tainted",false);
 			$this->signal( "after_update", $bean );
-			return (int) $bean->$idfield;
+			return $bean->$idfield;
 		}
 		else {
-			$id = $this->writer->insertRecord( $table, $insertcolumns, array($insertvalues) );
+			$id = $this->writer->insertRecord( $table, $insertcolumns, array($insertvalues), $bean );
 			$bean->$idfield = $id;
 			$bean->setMeta("tainted",false);
 			$this->signal( "after_update", $bean );
-			return (int) $id;
+			return $id;
 		}
 	}
 
@@ -251,7 +260,7 @@ class RedBean_OODB extends RedBean_Observable implements RedBean_ObjectDatabase 
 	 * @param integer $id
 	 * @return RedBean_OODBBean $bean
 	 */
-	public function load($type, $id) {
+	public function load($type, $id, $idfield = 'id') {
 		$this->signal("before_open",array("type"=>$type,"id"=>$id));
 		$tmpid = intval( $id );
 		if ($tmpid < 0) throw new RedBean_Exception_Security("Id less than zero not allowed");
@@ -261,7 +270,7 @@ class RedBean_OODB extends RedBean_Observable implements RedBean_ObjectDatabase 
 		}
 		else {
 			try {
-				$rows = $this->writer->selectRecord($type,array($id));
+				$rows = $this->writer->selectRecord($type,array($id), $idfield);
 			}catch(RedBean_Exception_SQL $e ) {
 				if (
 				$this->writer->sqlStateIn($e->getSQLState(),
@@ -276,7 +285,7 @@ class RedBean_OODB extends RedBean_Observable implements RedBean_ObjectDatabase 
 				}
 				else throw $e;
 			}
-			if (!$rows) return $this->dispense($type);
+			if ( is_null($rows) ) return $this->dispense($type);
 			$row = array_pop($rows);
 		}
 		foreach($row as $p=>$v) {

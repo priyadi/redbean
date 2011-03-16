@@ -147,8 +147,8 @@ class R {
 	 *
 	 * @return RedBean_OODBBean $bean
 	 */
-	public static function load( $type, $id ) {
-		return self::$redbean->load( $type, $id );
+	public static function load( $type, $id, $idfield = 'id' ) {
+		return self::$redbean->load( $type, $id, $idfield );
 	}
 
 	/**

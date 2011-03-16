@@ -172,15 +172,17 @@ class RedBean_QueryWriter_MySQL extends RedBean_QueryWriter_AQueryWriter impleme
 	 * 
 	 * @param string $table table
 	 */
-	public function createTable( $table ) {
-		$idfield = $this->getIDfield($table, true);
+	public function createTable( $table, $bean ) {
+//		$idfield = $this->getIDfield($table, true);
+//		$iddatatype = $this->getIDDataType($table);
+		$idfield = $bean->getMeta('sys.idfield');
+		$iddatatype = $bean->getMeta('sys.iddatatype');
 		$table = $this->safeTable($table);
-		$sql = "
-                     CREATE TABLE $table (
-                    $idfield INT( 11 ) UNSIGNED NOT NULL AUTO_INCREMENT ,
-                     PRIMARY KEY ( $idfield )
+		$sql = sprintf("CREATE TABLE %s (
+                    %s %s,
+                     PRIMARY KEY ( %s )
                      ) ENGINE = InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
-				  ";
+				  ", $table, $idfield, $iddatatype, $idfield );
 		$this->adapter->exec( $sql );
 	}
 

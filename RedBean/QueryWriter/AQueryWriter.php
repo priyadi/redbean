@@ -51,6 +51,12 @@ abstract class RedBean_QueryWriter_AQueryWriter {
 
 	/**
 	 * @var string
+	 * Indicates the data type of the ID field.
+	 */
+  protected $iddatatype = 'INT( 11 ) UNSIGNED NOT NULL AUTO_INCREMENT';
+  
+  	/**
+	 * @var string
 	 * default value to for blank field (passed to PK for auto-increment)
 	 */
   protected $defaultValue = 'NULL';
@@ -151,6 +157,34 @@ abstract class RedBean_QueryWriter_AQueryWriter {
 	}
 	
 	/**
+	 * Returns the column data type that should be used
+	 * for the table's primary key ID field.
+	 *
+	 * @param string $type type of bean to get ID Field's data type for
+	 *
+	 * @return string $iddatatypetobeused ID field's data type to be used for this type of bean
+	 */
+	public function getIDDataType($type) {
+		return( $this->iddatatype );
+	}
+
+	/**
+	 * Sets the data type string for the primary key field.
+	 * @param string $datatype
+	 */
+	public function setIDDataType($datatype) {
+		$this->iddatatype = $datatype;
+	}
+	
+	/**
+	 * Sets the name of the primary key field.
+	 * @param string $field
+	 */
+	public function setIDField($field) {
+		$this->idfield = $field;
+	}
+	
+	/**
 	 * Checks table name or column name.
 	 *
 	 * @param string $table table string
@@ -200,8 +234,10 @@ abstract class RedBean_QueryWriter_AQueryWriter {
 	 * @param array   $updatevalues update values
 	 * @param integer $id			  primary key for record
 	 */
-	public function updateRecord( $table, $updatevalues, $id) {
-		$idfield = $this->getIDField($table, true);
+	public function updateRecord( $table, $updatevalues, $bean) {
+		$idfield = $bean->getMeta('sys.idfield');
+//		$idfield = $this->getIDField($table, true);
+		$id = $bean->$idfield;
 		$table = $this->safeTable($table);
 		$sql = "UPDATE $table SET ";
 		$p = $v = array();
@@ -210,7 +246,8 @@ abstract class RedBean_QueryWriter_AQueryWriter {
 			//$v[]=strval( $uv["value"] );
 			$v[]=$uv["value"];
 		}
-		$sql .= implode(",", $p ) ." WHERE $idfield = ".intval($id);
+		$sql .= implode(",", $p ) ." WHERE $idfield = ?";
+		$v[] = $id;
 		$this->adapter->exec( $sql, $v );
 	}
 
@@ -224,17 +261,18 @@ abstract class RedBean_QueryWriter_AQueryWriter {
 	 *
 	 * @return integer $insertid	  insert id from driver, new record id
 	 */
-	public function insertRecord( $table, $insertcolumns, $insertvalues ) {
+	public function insertRecord( $table, $insertcolumns, $insertvalues, $bean ) {
 		$default = $this->defaultValue;
-		$idfield = $this->getIDField($table, true);
+		$idfield = $bean->getMeta('sys.idfield');
+//		$idfield = $this->getIDField($table, true);
 		$suffix = $this->getInsertSuffix($table);
 		$table = $this->safeTable($table);
 		if (count($insertvalues)>0 && is_array($insertvalues[0]) && count($insertvalues[0])>0) {
 			foreach($insertcolumns as $k=>$v) {
 				$insertcolumns[$k] = $this->safeColumn($v);
 			}
-			$insertSQL = "INSERT INTO $table ( $idfield, ".implode(",",$insertcolumns)." ) VALUES ";
-			$insertSQL .= "( $default, ". implode(",",array_fill(0,count($insertcolumns)," ? "))." ) $suffix";
+			$insertSQL = "INSERT INTO $table ( ".implode(",",$insertcolumns)." ) VALUES ";
+			$insertSQL .= "( ". implode(",",array_fill(0,count($insertcolumns)," ? "))." ) $suffix";
 			$first=true;
 			
 			foreach($insertvalues as $i=>$insertvalue) {
@@ -258,8 +296,8 @@ abstract class RedBean_QueryWriter_AQueryWriter {
 	 *
 	 * @return array $row	resulting row or NULL if none has been found
 	 */
-	public function selectRecord($type, $ids) {
-		$idfield = $this->getIDField($type, true);
+	public function selectRecord($type, $ids, $idfield = 'id') {
+//		$idfield = $this->getIDField($type, true);
 		$table = $this->safeTable($type);
 		$sql = "SELECT * FROM $table WHERE $idfield IN ( ".implode(',', array_fill(0, count($ids), " ? "))." )";
 		$rows = $this->adapter->get($sql,$ids);
